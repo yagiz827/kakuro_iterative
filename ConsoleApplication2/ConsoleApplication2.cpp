@@ -236,13 +236,23 @@ vector<sum> get_sums(int** matrix, int m, int n) {
     return sums;
 }
 
-bool is_valid(int** sol_mat, int RowI, int ColI, int target, bool is_row, int m, int n, int digit) {
+bool is_valid(int** sol_mat, int& RowI, int& ColI, int target, bool is_row, int m, int n, int digit, stack<pair<pair<int, int>, int>>& pStack) {
     bool Unfilled_cells = false;
     // check if the sum of the numbers in the row or column equals the target value
     int sumt = 0;
     int IterNum = 0;
     int i = 1;
 
+    if (pStack.top().second > 9)
+    {
+        pStack.pop();
+        sol_mat[RowI][ColI] = -2;
+        RowI = pStack.top().first.first;
+        ColI = pStack.top().first.second;
+        return false;
+    }
+
+    //print_one_matrix(sol_mat, m, n);
     while (i < (m)) {
         IterNum = sol_mat[is_row ? RowI : i][is_row ? i : ColI];
         if (IterNum == -2 || IterNum == -1) {
@@ -314,27 +324,39 @@ bool solution(int** mat, int** sol_mat, vector<int> sums, int m, int n, int RowI
     //while stack is not empty continue adding elements to the back and pop() if not meet the criteria. if execution ends and stack is empty no solution
     // if execution ends and the number of elements in the stack is equal to number of empty spaces in the kakuro it is a solution
     // calculate the next row and column indices
-    int next_row = ColI == m - 1 ? RowI + 1 : RowI;
-    int next_col = (ColI + 1) % n;
+    /*int next_row = ColI == m - 1 ? RowI + 1 : RowI;
+    int next_col = (ColI + 1) % n;*/
     stack<pair<pair<int, int>, int>> pStack;
     pair<int, int> second;
     pair<pair<int, int>, int> first;
+    
+    int next_RowI = ColI == m - 1 ? RowI + 1 : RowI;
+    int next_ColI = (ColI + 1) % n;
+    ColI = next_ColI; RowI = next_RowI;
     second.first = RowI; second.second = ColI;
     first.first = second; first.second = 1;
     pStack.push(first);
-    while(!pStack.empty()||pStack.size()!=lenEmptySpaces)
+    while(!pStack.empty())
     {
         
-        if(is_valid(sol_mat, pStack.top().first.first, pStack.top().first.second, sums[sums.size() / 2 + RowI - 1], true,  m, n, pStack.top().second)&&is_valid(sol_mat, pStack.top().first.first, pStack.top().first.second, sums[ColI - 1], false,  m, n, pStack.top().second))
+        if(is_valid(sol_mat, RowI, ColI, sums[sums.size() / 2 + RowI - 1], true,  m, n, pStack.top().second, pStack)&&is_valid(sol_mat, RowI, ColI, sums[ColI - 1], false,  m, n, pStack.top().second, pStack))
         {
+            if (pStack.size() == lenEmptySpaces) {
+                return true;
+            }
             pair<int, int> second;
             pair<pair<int, int>, int> first;
+           
+            int next_RowI = ColI == m - 1 ? RowI + 1 : RowI;
+            int next_ColI = (ColI + 1) % n;
+            if (next_ColI == 0)next_ColI++;
+            ColI = next_ColI; RowI = next_RowI;
+            
             second.first = RowI; second.second = ColI;
             first.first = second; first.second = 1;
             pStack.push(first);
             sol_mat[RowI][ColI] = pStack.top().second;
-            int RowI = ColI == m - 1 ? RowI + 1 : RowI;
-            int ColI = (ColI + 1) % n;
+            //print_one_matrix(sol_mat, m, n);
         }
         else
         {
@@ -342,12 +364,17 @@ bool solution(int** mat, int** sol_mat, vector<int> sums, int m, int n, int RowI
             {
                 pStack.top().second++;
                 sol_mat[RowI][ColI] = pStack.top().second;
+                //print_one_matrix(sol_mat, m, n);
             }
             else
             {
                 pStack.pop();
-                int RowI =pStack.top().first.first;
-                int ColI = pStack.top().first.second;
+                sol_mat[RowI][ColI] = -2;
+                RowI =pStack.top().first.first;
+                ColI = pStack.top().first.second;
+                pStack.top().second++;
+                sol_mat[RowI][ColI] = pStack.top().second;
+                print_one_matrix(sol_mat, m, n);
             }
         }   
     }
@@ -356,9 +383,9 @@ bool solution(int** mat, int** sol_mat, vector<int> sums, int m, int n, int RowI
     }
     return true;
 
-    if (RowI == m) {
+    /*if (RowI == m) {
         return true;
-    }
+    }*/
 
    
     
@@ -401,7 +428,7 @@ bool solution(int** mat, int** sol_mat, vector<int> sums, int m, int n, int RowI
 int main(int argc, char** argv) {
 
     //std::string filename(argv[1]);
-    string filename = "C:\\Users\\ytufek\\Desktop\\personal\\okul\\4.2\\cs406\\CS406_531_HW2\\board4_1.kakuro";
+    string filename = "C:\\Users\\ytufek\\Desktop\\personal\\okul\\4.2\\cs406\\CS406_531_HW2\\board4_2.kakuro";
     std::ifstream file;
     file.open(filename.c_str());
     map<int, int> Hash;
@@ -441,7 +468,7 @@ int main(int argc, char** argv) {
     }
 
     auto start = std::chrono::high_resolution_clock::now();
-    solution(mat, sol_mat, Hints, m, n, 0, 0,sums.size());
+    solution(mat, sol_mat, Hints, m, n, 1, 0, (n-1)*(m-1));
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
     cout << elapsed.count();
